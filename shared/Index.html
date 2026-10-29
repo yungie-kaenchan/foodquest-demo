@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -66,6 +67,13 @@
     width: 100%; font: inherit; font-size: 19px; padding: 12px 14px; border-radius: 14px;
     border: 2px solid var(--line); background: #fffdf9; color: var(--ink);
   }
+  textarea#typeInput {
+    display: block; width: 100%; min-height: 190px; resize: vertical;
+    font: inherit; font-size: 17px; line-height: 1.6;
+    padding: 14px; border-radius: 14px; border: 2px solid var(--line);
+    background: #fffdf9; color: var(--ink);
+  }
+  textarea#typeInput:focus { outline: 3px solid var(--sky); outline-offset: 2px; }
   input[type=text]:focus { outline: none; border-color: var(--sky); box-shadow: 0 0 0 4px var(--sky-soft); }
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -126,6 +134,8 @@
   .feedback { font-size: 20px; font-weight: 700; margin-top: 12px; min-height: 30px; }
   .feedback.good { color: #1c8a64; }
   .feedback.bad { color: #c2403c; }
+  .ai-feedback { margin-top: 18px; padding: 16px; border: 2px solid var(--line); border-radius: 16px; background: var(--mint-soft); text-align: left; }
+  .ai-feedback p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 17px; line-height: 1.65; }
   .results { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
   .results li { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: #fffdf9; border: 2px solid var(--line); }
   .results li .ans { margin-left: auto; font-weight: 600; }
@@ -210,7 +220,8 @@
       <div class="choices" id="choices"></div>
       <div id="typeWrap" hidden>
         <label for="typeInput" class="sr" data-t="typeHere"></label>
-        <input type="text" id="typeInput" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <textarea id="typeInput" rows="7" maxlength="5000" autocomplete="off" autocapitalize="sentences" spellcheck="true" aria-describedby="writingHelp"></textarea>
+        <p class="muted" id="writingHelp" style="margin-top:8px" data-t="writingHelp"></p>
       </div>
       <div class="hint" id="hint"></div>
       <div class="feedback" id="feedback" aria-live="polite"></div>
@@ -228,6 +239,10 @@
       <h2 id="levelTitle"></h2>
       <p id="levelLine"></p>
       <ul class="results" id="levelList" style="text-align:left"></ul>
+      <div class="ai-feedback" id="aiFeedbackBox" hidden role="region" aria-labelledby="aiFeedbackTitle">
+        <h2 id="aiFeedbackTitle" data-t="aiFeedbackTitle"></h2>
+        <p id="aiFeedbackText"></p>
+      </div>
       <button class="btn full" id="backToMap" data-t="continue"></button>
     </div>
   </section>
@@ -274,7 +289,9 @@ const T = {
     privacy: 'ใช้ชื่อเล่นเท่านั้น ไม่ต้องใส่ชื่อจริงหรือเบอร์โทร',
     points: 'คะแนน', stars: 'ดาว', map: 'เลือกด่าน', finish: 'จบเกม ส่งคะแนน 🏁',
     level: 'ด่าน', questionsN: n => n + ' ข้อ', locked: 'ผ่านด่านก่อนหน้าก่อนนะ',
-    qOf: (i, n) => 'ข้อ ' + i + ' จาก ' + n, typeHere: 'พิมพ์คำตอบ', hintBtn: '💡 คำใบ้', check: 'ตรวจคำตอบ', next: 'ข้อต่อไป ➜', seeResult: 'ดูผล ➜',
+    writingHelp: 'เขียนเป็นย่อหน้า ใช้ Past Simple เพื่อบรรยายบ้านเกิดของคุณ',
+    aiFeedbackTitle: '💬 คำแนะนำการเขียนจาก AI',
+     qOf: (i, n) => 'ข้อ ' + i + ' จาก ' + n, typeHere: 'พิมพ์คำตอบ', hintBtn: '💡 คำใบ้', check: 'ตรวจคำตอบ', next: 'ข้อต่อไป ➜', seeResult: 'ดูผล ➜',
     right: ['เยี่ยมมาก! ✨', 'ถูกต้อง! 🎉', 'เก่งมาก! 🌟'], wrong: 'ยังไม่ใช่ ไม่เป็นไรนะ 💪', saved: 'บันทึกคำตอบแล้ว ✓ (เฉลยตอนจบด่าน)', pick: 'เลือกหรือพิมพ์คำตอบก่อนนะ',
     levelDone: n => 'ผ่านด่าน ' + n + ' แล้ว!', levelLine: (c, t, p) => 'ถูก ' + c + ' จาก ' + t + ' ข้อ · ได้ ' + p + ' คะแนน',
     continue: 'กลับไปที่แผนที่', wellDone: 'สุดยอด!', endLine: (p, c, t) => 'ได้ทั้งหมด ' + p + ' คะแนน (ถูก ' + c + '/' + t + ')',
@@ -296,7 +313,9 @@ const T = {
     privacy: 'Use your nickname only. No full names or phone numbers.',
     points: 'points', stars: 'stars', map: 'Choose a level', finish: 'Finish and send my score 🏁',
     level: 'Level', questionsN: n => n + ' questions', locked: 'Finish the previous level first',
-    qOf: (i, n) => 'Question ' + i + ' of ' + n, typeHere: 'Type your answer', hintBtn: '💡 Hint', check: 'Check', next: 'Next ➜', seeResult: 'See result ➜',
+    writingHelp: 'Write a paragraph describing your hometown. Use the past simple tense.',
+    aiFeedbackTitle: '💬 AI writing feedback',
+     qOf: (i, n) => 'Question ' + i + ' of ' + n, typeHere: 'Type your answer', hintBtn: '💡 Hint', check: 'Check', next: 'Next ➜', seeResult: 'See result ➜',
     right: ['Great! ✨', 'Correct! 🎉', 'Well done! 🌟'], wrong: 'Not quite. Keep going! 💪', saved: 'Answer saved ✓ (answers at the end of the level)', pick: 'Choose or type an answer first',
     levelDone: n => 'Level ' + n + ' complete!', levelLine: (c, t, p) => c + ' of ' + t + ' correct · ' + p + ' points',
     continue: 'Back to the map', wellDone: 'Awesome!', endLine: (p, c, t) => 'You scored ' + p + ' points (' + c + '/' + t + ' correct)',
@@ -487,7 +506,7 @@ function renderQuestion(keepState) {
   if (q.say && !keepState) setTimeout(() => speak(q.say), 350);
 }
 
-$('typeInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('checkBtn').click(); } });
+// Enter adds a new line in the paragraph box; use the Check button to submit.
 $('hintBtn').addEventListener('click', () => $('hint').classList.add('show'));
 $('listenBtn').addEventListener('click', () => speak(currentQ().say));
 
@@ -542,6 +561,9 @@ async function submitLevel() {
     const qs = {}; lv.questions.forEach(q => { qs[q.id] = q; });
     const mine = {}; st.answers.forEach(a => { mine[a.id] = a.answer; });
     $('levelList').innerHTML = '';
+    const feedbackItems = (r.details || []).filter(d => typeof d.feedback === 'string' && d.feedback.trim());
+    $('aiFeedbackBox').hidden = feedbackItems.length === 0;
+    $('aiFeedbackText').textContent = feedbackItems.map(d => d.feedback.trim()).join('\n\n');
     r.details.forEach(d => {
       const li = document.createElement('li');
       li.innerHTML = '<span aria-hidden="true"></span><span class="q"></span><span class="ans"></span>';
