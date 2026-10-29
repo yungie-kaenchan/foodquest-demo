@@ -1,3 +1,4 @@
+
 /* WORD QUEST · Netlify house: the wiring (one Netlify Function, three doors)
  *   POST /api/game   { fn, args }   the game (same calls as the Google kit's google.script.run)
  *   GET  /api/file?k=…&s=…          a student upload (signed link, written into the Sheet's Uploads tab)
@@ -34,7 +35,7 @@ function getHouse(req) {
       uploads: getStore({ name: 'wq-uploads', consistency: 'strong' }),
       meta: getStore({ name: 'wq-meta', consistency: 'strong' }),
     },
-    secret, siteUrl,
+    secret, siteUrl, geminiKey: env('GEMINI_API_KEY'),
   });
   houseKey = key;
   return house;
